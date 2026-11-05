@@ -12,10 +12,13 @@ public class Hero : MonoBehaviour
     public float pitchMult = 30;
     public GameObject projectilePrefab;
     public float projectileSpeed = 40;
+    public Weapon[] weapons;
 
     [Header("Dynamic")] [Range(0, 4)]
     private float _shieldLevel = 1;
     private GameObject lastTriggerGo = null;
+    public delegate void WeaponFireDelegate();
+    public event WeaponFireDelegate fireEvent;
 
     public float shieldLevel
     {
@@ -41,6 +44,11 @@ public class Hero : MonoBehaviour
         {
             Debug.LogError("Hero.Awake() - Attempted to assign second Hero.S");
         }
+
+        ClearWeapons();
+        weapons[0].SetType(eWeaponType.blaster);
+
+        //        fireEvent += TempFire;
     }
 
 
@@ -56,9 +64,9 @@ public class Hero : MonoBehaviour
 
         transform.rotation = Quaternion.Euler(vAxis * pitchMult, hAxis * rollMult, 0);
 
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetAxis("Jump") == 1 && fireEvent != null)
         {
-            TempFire();
+            fireEvent();
         }
     }
 
@@ -75,18 +83,76 @@ public class Hero : MonoBehaviour
         {
             --shieldLevel;
             Destroy(go);
+            return;
         }
-        else
+        PowerUp pUp = go.GetComponent<PowerUp>();
+        if (pUp != null)
         {
-            Debug.LogWarning("Shield trigger hi by non-Enemy: " + go.name);
+            AbsorbPowerUp(pUp);
+            return;
         }
+        Debug.LogWarning("Shield trigger hi by non-Enemy, non-PowerUp: " + go.name);
+        
     }
 
+    public void AbsorbPowerUp(PowerUp pUp)
+    {
+//        Debug.Log("Absorbed PowerUp:" + pUp.type);
+        switch (pUp.type)
+        {
+            case eWeaponType.shield:
+                ++shieldLevel;
+                break;
+
+            default:
+                if (pUp.type == weapons[0].type)
+                {
+                    Weapon weap = GetEmptyWeaponSlot();
+                    if (weap != null)
+                    {
+                        weap.SetType(pUp.type);
+                    }
+                }
+                else
+                {
+                    ClearWeapons();
+                    weapons[0].SetType(pUp.type);
+                }
+                break;
+        }
+        pUp.AbsorbedBy(this.gameObject);
+    }
+
+    Weapon GetEmptyWeaponSlot()
+    {
+        for (int i = 0; i < weapons.Length; ++i)
+        {
+            if(weapons[i].type == eWeaponType.none)
+            {
+                return weapons[i];
+            }
+        }
+        return null;
+    }
+
+    void ClearWeapons()
+    {
+        foreach (Weapon w in weapons)
+        {
+            w.SetType(eWeaponType.none);
+        }
+    }
+/*
     void TempFire()
     {
         GameObject projGO = Instantiate<GameObject>(projectilePrefab);
         projGO.transform.position = transform.position;
         Rigidbody rigidB = projGO.GetComponent<Rigidbody>();
-        rigidB.velocity = Vector3.up * projectileSpeed;
+
+        ProjectileHero proj = projGO.GetComponent<ProjectileHero>();
+        proj.type = eWeaponType.blaster;
+        float tSpeed = Main.GET_WEAPON_DEFINITION(proj.type).velocity;
+        rigidB.velocity = Vector3.up * tSpeed;
     }
+*/
 }

@@ -6,13 +6,19 @@ using UnityEngine.SceneManagement;
 public class Main : MonoBehaviour
 {
     static private Main S;
+    static private Dictionary<eWeaponType, WeaponDefinition> WEAP_DICT;
     [Header("Inscribed")]
+    public bool spawnEnemies = true;
     public GameObject[] prefabEnemies;
     public float enemySpawnPerSecond = 0.5f;
-    public float enemyInsetDefault;
+    public float enemyInsetDefault = 1.5f;
     public float gameRestartDelay = 2;
+    public GameObject prefabPowerUp;
+    public WeaponDefinition[] weaponDefinitions;
+    public eWeaponType[] powerUpFrequency = new eWeaponType[] { eWeaponType.blaster, eWeaponType.blaster, eWeaponType.spread, eWeaponType.shield };
 
     private BoundsCheck bndCheck;
+
 
     void Awake()
     {
@@ -20,15 +26,27 @@ public class Main : MonoBehaviour
         bndCheck = GetComponent<BoundsCheck>();
 
         Invoke(nameof(SpawnEnemy), 1f / enemySpawnPerSecond);
+
+        WEAP_DICT = new Dictionary<eWeaponType, WeaponDefinition>();
+        foreach (WeaponDefinition def in weaponDefinitions)
+        {
+            WEAP_DICT[def.type] = def;
+        }
     }
 
     public void SpawnEnemy()
     {
+        if (!spawnEnemies)
+        {
+            Invoke(nameof(SpawnEnemy), 1f / enemySpawnPerSecond);
+            return;
+        }
+
         int index = Random.Range(0, prefabEnemies.Length);
         GameObject go = Instantiate<GameObject>(prefabEnemies[index]);
 
         float enemyInset = enemyInsetDefault;
-        if(go.GetComponent<BoundsCheck>() != null)
+        if (go.GetComponent<BoundsCheck>() != null)
         {
             enemyInset = Mathf.Abs(go.GetComponent<BoundsCheck>().radius);
         }
@@ -56,5 +74,29 @@ public class Main : MonoBehaviour
     static public void HERO_DIED()
     {
         S.DelayedRestart();
+    }
+
+    static public WeaponDefinition GET_WEAPON_DEFINITION(eWeaponType wt)
+    {
+        if (WEAP_DICT.ContainsKey(wt))
+        {
+            return WEAP_DICT[wt];
+        }
+
+        return (new WeaponDefinition());
+    }
+
+    public static void SHIP_DESTROYED(Enemy e)
+    {
+        if (Random.value <= e.powerUpDropChance)
+        {
+            int index = Random.Range(0, S.powerUpFrequency.Length);
+            eWeaponType pUpType = S.powerUpFrequency[index];
+
+            GameObject go = Instantiate<GameObject>(S.prefabPowerUp);
+            PowerUp pUp = go.GetComponent<PowerUp>();
+            pUp.SetType(pUpType);
+            pUp.transform.position = e.transform.position;
+        }
     }
 }
