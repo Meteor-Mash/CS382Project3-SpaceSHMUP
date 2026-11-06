@@ -101,6 +101,7 @@ MonoBehaviour:
   fireRate: 0.3
   health: 10
   score: 100
+  powerUpDropChance: 0.25
 --- !u!114 &-6387031559769876163
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -115,6 +116,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   showingColor: 0
   blinkCompleteTime: 0
+  ingoreOnCollisionEnter: 0
 --- !u!1001 &7250875418109906853
 PrefabInstance:
   m_ObjectHideFlags: 0
