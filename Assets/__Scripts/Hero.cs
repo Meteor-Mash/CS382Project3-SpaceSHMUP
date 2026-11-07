@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Hero : MonoBehaviour
@@ -13,12 +14,17 @@ public class Hero : MonoBehaviour
     public GameObject projectilePrefab;
     public float projectileSpeed = 40;
     public Weapon[] weapons;
+    private Color[] rainbow = {Color.red, Color.yellow, Color.green, Color.blue};
 
     [Header("Dynamic")] [Range(0, 4)]
     private float _shieldLevel = 1;
     private GameObject lastTriggerGo = null;
     public delegate void WeaponFireDelegate();
     public event WeaponFireDelegate fireEvent;
+    private bool starUp = false;
+    private Material[] materials;
+    private Color[] originalColors;
+    private int currentColor = 0;
 
     public float shieldLevel
     {
@@ -48,7 +54,12 @@ public class Hero : MonoBehaviour
         ClearWeapons();
         weapons[0].SetType(eWeaponType.blaster);
 
-        //        fireEvent += TempFire;
+        materials = Utils.GetAllMaterials(gameObject);
+        originalColors = new Color[materials.Length];
+        for (int i = 0; i < materials.Length; ++i)
+        {
+            originalColors[i] = materials[i].color;
+        }
     }
 
 
@@ -81,7 +92,9 @@ public class Hero : MonoBehaviour
         Enemy enemy = go.GetComponent<Enemy>();
         if (enemy != null)
         {
-            --shieldLevel;
+            if (!starUp) {
+                --shieldLevel;
+            }
             Destroy(go);
             return;
         }
@@ -104,6 +117,10 @@ public class Hero : MonoBehaviour
                 ++shieldLevel;
                 break;
 
+            case eWeaponType.star:
+            StarStart();
+                break;
+
             default:
                 if (pUp.type == weapons[0].type)
                 {
@@ -121,6 +138,40 @@ public class Hero : MonoBehaviour
                 break;
         }
         pUp.AbsorbedBy(this.gameObject);
+    }
+
+    void StarStart()
+    {
+        starUp = true;
+
+        speed = 60;
+
+        Invoke(nameof(StarColor), 0.2f);
+
+        Invoke(nameof(StarEnd), 5f);
+    }
+
+    void StarColor()
+    {
+        if (!starUp) return;
+        foreach (Material m in materials)
+        {
+            m.color = rainbow[currentColor];
+        }
+        currentColor = (currentColor + 1) % rainbow.Length;
+        Invoke(nameof(StarColor), 0.2f);
+    }
+
+    void StarEnd()
+    {
+        starUp = false;
+
+        speed = 30;
+
+        for (int i = 0; i < materials.Length; ++i)
+        {
+            materials[i].color = originalColors[i];
+        }
     }
 
     Weapon GetEmptyWeaponSlot()

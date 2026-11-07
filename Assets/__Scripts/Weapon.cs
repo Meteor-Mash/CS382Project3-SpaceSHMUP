@@ -10,7 +10,8 @@ public enum eWeaponType
     phaser,
     missile,
     laser,
-    shield
+    shield,
+    star
 }
 
 [System.Serializable]
